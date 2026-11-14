@@ -1,0 +1,362 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#0b0718">
+<title>Painel da Festa</title>
+<link rel="stylesheet" href="/static/base.css">
+<style>
+  .toggles { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 8px; margin-top: 14px; }
+  .toggle {
+    display: flex; align-items: center; gap: 10px; padding: 12px 14px;
+    background: rgba(0,0,0,.3); border: 1px solid var(--card-border); border-radius: 12px;
+    font-size: 14px; cursor: pointer;
+  }
+  .toggle input { width: 18px; height: 18px; accent-color: var(--accent); }
+  .two { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  input[type="datetime-local"] {
+    width: 100%; margin-top: 6px; padding: 12px 14px; border-radius: 12px;
+    border: 1px solid var(--card-border); background: rgba(0,0,0,.35);
+    color: var(--text); font-size: 16px; font-family: inherit;
+  }
+  .tile .del {
+    position: absolute; top: 6px; right: 6px; z-index: 2;
+    width: 28px; height: 28px; border-radius: 50%; border: none;
+    background: rgba(0,0,0,.7); color: #ff9e9e; font-size: 15px; cursor: pointer;
+    line-height: 1;
+  }
+  #gate { max-width: 360px; margin: 60px auto; }
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <div class="brand"><span class="dot">⚙️</span><span>Painel da Festa</span></div>
+  <nav class="navlinks">
+    <a href="/upload">Enviar</a>
+    <a href="/album">Álbum</a>
+    <a href="/admin" class="active">Painel</a>
+  </nav>
+</div>
+
+<!-- Tela de PIN -->
+<div class="wrap" id="gate" style="display:none">
+  <div class="card">
+    <h1>PIN do painel</h1>
+    <p class="muted">Digite o PIN configurado para abrir as opções da festa.</p>
+    <label class="field">
+      PIN
+      <input type="password" id="pinInput" inputmode="numeric" autocomplete="off">
+    </label>
+    <div class="spacer"></div>
+    <button class="btn block" id="pinBtn">Entrar</button>
+    <div class="status" id="pinStatus"></div>
+  </div>
+</div>
+
+<!-- Painel -->
+<div class="wrap" id="panel" style="display:none">
+
+  <div class="stats-row">
+    <div class="stat"><div class="k">Fotos</div><div class="v" id="sTotal">0</div></div>
+    <div class="stat"><div class="k">Espaço usado</div><div class="v" id="sSize">--</div></div>
+    <div class="stat"><div class="k">Endereço</div><div class="v" id="sUrl" style="font-size:15px">--</div></div>
+    <div class="stat"><div class="k">Versão</div><div class="v" id="sVer" style="font-size:15px">--</div></div>
+  </div>
+
+  <div class="card">
+    <h2>A festa</h2>
+    <label class="field">Título (aparece na TV e no celular)
+      <input type="text" id="eventTitle" maxlength="80"></label>
+    <label class="field">Chamada para os convidados
+      <input type="text" id="subtitle" maxlength="120"></label>
+
+    <div class="two">
+      <label class="field">Segundos por foto
+        <input type="number" id="slideSeconds" min="2" max="120"></label>
+      <label class="field">Destaque da foto nova (s)
+        <input type="number" id="newPhotoHoldSeconds" min="0" max="120"></label>
+    </div>
+
+    <div class="toggles">
+      <label class="toggle"><input type="checkbox" id="shuffle"> Ordem aleatória</label>
+      <label class="toggle"><input type="checkbox" id="showQr"> QR code na TV</label>
+      <label class="toggle"><input type="checkbox" id="showStats"> Informações no topo</label>
+      <label class="toggle"><input type="checkbox" id="showThumbs"> Miniaturas na TV</label>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>Wi-Fi da casa</h2>
+    <p class="muted">Preencha para a TV mostrar um QR que conecta os convidados no Wi-Fi sem digitar senha.</p>
+    <label class="field">Nome da rede (SSID)
+      <input type="text" id="wifiSsid" maxlength="64" autocapitalize="off" autocorrect="off"></label>
+    <div class="two">
+      <label class="field">Senha
+        <input type="text" id="wifiPassword" maxlength="64" autocapitalize="off" autocorrect="off"></label>
+      <label class="field">Segurança
+        <select id="wifiSecurity">
+          <option value="WPA">WPA / WPA2 / WPA3</option>
+          <option value="WEP">WEP</option>
+          <option value="nopass">Rede aberta</option>
+        </select></label>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>Contagem regressiva</h2>
+    <p class="muted">Opcional. Na hora marcada a TV faz a contagem e solta fogos.</p>
+    <label class="field">Momento
+      <input type="datetime-local" id="countdownAt"></label>
+    <div class="two">
+      <label class="field">Texto da contagem
+        <input type="text" id="countdownLabel" maxlength="60"></label>
+      <label class="field">Texto da comemoração
+        <input type="text" id="celebrationText" maxlength="60"></label>
+    </div>
+    <div class="spacer"></div>
+    <button class="btn secondary small" id="clearCountdown">Desligar a contagem</button>
+  </div>
+
+  <div class="card">
+    <h2>Armazenamento e segurança</h2>
+    <div class="two">
+      <label class="field">Máximo de fotos guardadas
+        <input type="number" id="maxPhotos" min="20" max="5000"></label>
+      <label class="field">Qualidade guardada
+        <select id="maxDimension">
+          <option value="1280">Leve (1280 px)</option>
+          <option value="1920">Recomendado (1920 px)</option>
+          <option value="2560">Alta (2560 px)</option>
+        </select></label>
+    </div>
+    <label class="field">PIN deste painel (vazio = sem PIN)
+      <input type="text" id="adminPin" maxlength="12" inputmode="numeric"></label>
+    <p class="muted" style="margin-top:8px">Passando do limite, as fotos mais antigas saem para abrir espaço.</p>
+  </div>
+
+  <div class="card">
+    <div class="row">
+      <button class="btn" id="saveBtn">Salvar configurações</button>
+      <a class="btn secondary" id="zipBtn" href="/api/download-all">⬇ Baixar álbum (.zip)</a>
+      <button class="btn danger" id="clearBtn">Apagar todas as fotos</button>
+    </div>
+    <div class="status" id="status"></div>
+  </div>
+
+  <div class="card">
+    <h2>Fotos recebidas</h2>
+    <div class="grid" id="grid"></div>
+    <div class="empty" id="empty">Nenhuma foto ainda.</div>
+  </div>
+</div>
+
+<script>
+(function () {
+  "use strict";
+
+  var $ = function (id) { return document.getElementById(id); };
+  var pin = "";
+  var photos = [];
+  var revision = -1;
+  var formLoaded = false;
+  var booted = false;
+
+  try { pin = sessionStorage.getItem("fotostv.pin") || ""; } catch (e) {}
+
+  function headers(extra) {
+    var h = extra || {};
+    if (pin) h["X-Admin-Pin"] = pin;
+    return h;
+  }
+
+  function say(text, ok) {
+    $("status").textContent = text;
+    $("status").className = "status " + (ok ? "ok" : "err");
+    if (ok) setTimeout(function () { $("status").textContent = ""; }, 4000);
+  }
+
+  // ---------- porta de entrada ----------
+  function checkAccess() {
+    fetch("/api/admin/check", { headers: headers(), cache: "no-store" })
+      .then(function (r) { return r.json(); })
+      .then(function (res) {
+        if (res.ok) {
+          $("gate").style.display = "none";
+          $("panel").style.display = "";
+          boot();
+        } else {
+          $("gate").style.display = "";
+          $("panel").style.display = "none";
+        }
+      })
+      .catch(function () { say("Sem conexão com o aparelho da TV."); });
+  }
+
+  $("pinBtn").addEventListener("click", function () {
+    pin = $("pinInput").value.trim();
+    try { sessionStorage.setItem("fotostv.pin", pin); } catch (e) {}
+    $("pinStatus").textContent = "";
+    fetch("/api/admin/check", { headers: headers(), cache: "no-store" })
+      .then(function (r) { return r.json(); })
+      .then(function (res) {
+        if (res.ok) checkAccess();
+        else { $("pinStatus").className = "status err"; $("pinStatus").textContent = "PIN incorreto."; }
+      });
+  });
+
+  $("pinInput").addEventListener("keydown", function (e) {
+    if (e.key === "Enter") $("pinBtn").click();
+  });
+
+  // ---------- formulário ----------
+  var TEXTS = ["eventTitle", "subtitle", "wifiSsid", "wifiPassword", "countdownLabel", "celebrationText", "adminPin"];
+  var NUMBERS = ["slideSeconds", "newPhotoHoldSeconds", "maxPhotos"];
+  var FLAGS = ["shuffle", "showQr", "showStats", "showThumbs"];
+
+  function fillForm(s) {
+    TEXTS.forEach(function (k) { if (s[k] !== undefined) $(k).value = s[k]; });
+    NUMBERS.forEach(function (k) { if (s[k] !== undefined) $(k).value = s[k]; });
+    FLAGS.forEach(function (k) { if (s[k] !== undefined) $(k).checked = !!s[k]; });
+    $("wifiSecurity").value = s.wifiSecurity || "WPA";
+    $("maxDimension").value = String(s.maxDimension || 1920);
+    $("countdownAt").value = (s.countdownAt || "").replace(" ", "T").slice(0, 16);
+    // O PIN nunca volta do servidor; mostramos vazio e só mudamos se digitar algo
+    $("adminPin").value = "";
+    $("adminPin").placeholder = s.hasPin ? "••••  (PIN ativo)" : "sem PIN";
+  }
+
+  function readForm() {
+    var out = {};
+    TEXTS.forEach(function (k) { out[k] = $(k).value.trim(); });
+    NUMBERS.forEach(function (k) { out[k] = parseInt($(k).value, 10) || 0; });
+    FLAGS.forEach(function (k) { out[k] = $(k).checked; });
+    out.wifiSecurity = $("wifiSecurity").value;
+    out.maxDimension = parseInt($("maxDimension").value, 10);
+    out.countdownAt = $("countdownAt").value ? $("countdownAt").value.replace("T", " ") : "";
+    // Campo em branco = manter o PIN atual
+    if (!$("adminPin").value.trim()) delete out.adminPin;
+    return out;
+  }
+
+  $("saveBtn").addEventListener("click", function () {
+    var body = readForm();
+    fetch("/api/settings", {
+      method: "POST",
+      headers: headers({ "Content-Type": "application/json" }),
+      body: JSON.stringify(body)
+    })
+      .then(function (r) {
+        if (r.status === 403) throw new Error("PIN incorreto");
+        return r.json();
+      })
+      .then(function (s) {
+        if (body.adminPin !== undefined) {
+          pin = body.adminPin;
+          try { sessionStorage.setItem("fotostv.pin", pin); } catch (e) {}
+        }
+        fillForm(s);
+        updateZipLink();
+        say("Configurações salvas. A TV já está aplicando.", true);
+      })
+      .catch(function (e) { say("Não salvou: " + e.message); });
+  });
+
+  $("clearCountdown").addEventListener("click", function () {
+    $("countdownAt").value = "";
+    $("saveBtn").click();
+  });
+
+  $("clearBtn").addEventListener("click", function () {
+    if (!window.confirm("Apagar TODAS as fotos da festa? Isso não tem volta.")) return;
+    fetch("/api/photos/clear", { method: "POST", headers: headers() })
+      .then(function (r) { return r.json(); })
+      .then(function (res) { say("Apagadas " + res.removed + " fotos.", true); loadPhotos(true); })
+      .catch(function () { say("Não consegui apagar."); });
+  });
+
+  // O download direto nao manda header, entao o PIN vai na URL
+  function updateZipLink() {
+    $("zipBtn").href = pin
+      ? "/api/download-all?pin=" + encodeURIComponent(pin)
+      : "/api/download-all";
+  }
+
+  // ---------- fotos ----------
+  function escapeHtml(s) {
+    return String(s).replace(/[&<>"]/g, function (c) {
+      return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c];
+    });
+  }
+
+  function renderPhotos() {
+    $("sTotal").textContent = photos.length;
+    $("empty").style.display = photos.length ? "none" : "";
+    var html = "";
+    for (var i = photos.length - 1; i >= 0; i--) {
+      var p = photos[i];
+      html += '<div class="tile">' +
+                '<button class="del" data-name="' + escapeHtml(p.name) + '" title="Apagar">✕</button>' +
+                '<img loading="lazy" src="' + p.thumb + '" alt="">' +
+                (p.author ? '<div class="who">' + escapeHtml(p.author) + "</div>" : "") +
+              "</div>";
+    }
+    $("grid").innerHTML = html;
+  }
+
+  $("grid").addEventListener("click", function (e) {
+    var btn = e.target.closest(".del");
+    if (!btn) return;
+    var name = btn.getAttribute("data-name");
+    fetch("/api/photos/delete", {
+      method: "POST",
+      headers: headers({ "Content-Type": "application/x-www-form-urlencoded" }),
+      body: "name=" + encodeURIComponent(name)
+    })
+      .then(function () { loadPhotos(true); })
+      .catch(function () { say("Não consegui apagar a foto."); });
+  });
+
+  function loadPhotos(force) {
+    fetch("/api/photos?limit=2000", { cache: "no-store" })
+      .then(function (r) { return r.json(); })
+      .then(function (data) {
+        if (!force && data.revision === revision) return;
+        revision = data.revision;
+        photos = data.photos || [];
+        renderPhotos();
+      })
+      .catch(function () {});
+  }
+
+  function loadInfo() {
+    fetch("/api/info", { cache: "no-store" })
+      .then(function (r) { return r.json(); })
+      .then(function (info) {
+        $("sUrl").textContent = info.baseUrl ? info.baseUrl.replace("http://", "") : "sem rede";
+        $("sVer").textContent = "v" + info.version;
+        var mb = (info.storageBytes || 0) / 1048576;
+        $("sSize").textContent = mb < 1024 ? mb.toFixed(1) + " MB" : (mb / 1024).toFixed(2) + " GB";
+        // So preenche uma vez: senao o refresh periodico apaga o que o
+        // usuario esta digitando.
+        if (info.settings && !formLoaded) { fillForm(info.settings); formLoaded = true; }
+        updateZipLink();
+      })
+      .catch(function () {});
+  }
+
+  function boot() {
+    if (booted) return;
+    booted = true;
+    loadInfo();
+    loadPhotos(true);
+    setInterval(loadPhotos, 10000);
+    setInterval(loadInfo, 30000);
+  }
+
+  checkAccess();
+})();
+</script>
+</body>
+</html>

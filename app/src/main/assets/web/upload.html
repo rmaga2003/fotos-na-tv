@@ -1,0 +1,331 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#0b0718">
+<title>Enviar foto</title>
+<link rel="stylesheet" href="/static/base.css">
+<style>
+  .hero { text-align: center; padding: 8px 0 4px; }
+  .hero .ring {
+    width: 86px; height: 86px; border-radius: 50%; margin: 0 auto 12px;
+    display: grid; place-items: center; font-size: 36px;
+    background: radial-gradient(circle at 32% 28%, #ffd54f 0, #f4511e 42%, #4a148c 100%);
+    box-shadow: 0 0 36px rgba(255, 170, 60, 0.45);
+  }
+  .pickers { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 18px; }
+  .picker {
+    display: flex; flex-direction: column; align-items: center; gap: 6px;
+    padding: 20px 10px; border-radius: 16px; cursor: pointer;
+    border: 1px dashed rgba(255,255,255,0.28); background: rgba(255,255,255,0.04);
+    font-size: 14px; font-weight: 600; text-align: center;
+  }
+  .picker:active { background: rgba(255,255,255,0.1); }
+  .picker .ico { font-size: 28px; }
+  .queue { margin-top: 18px; display: flex; flex-direction: column; gap: 10px; }
+  .item {
+    display: flex; gap: 12px; align-items: center;
+    background: rgba(0,0,0,0.3); border: 1px solid var(--card-border);
+    border-radius: 14px; padding: 10px;
+  }
+  .item img {
+    width: 56px; height: 56px; border-radius: 10px; object-fit: cover; flex: none;
+    background: #000;
+  }
+  .item .meta { flex: 1; min-width: 0; }
+  .item .name { font-size: 13px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .item .sub { font-size: 12px; color: var(--muted); }
+  .bar { height: 5px; border-radius: 999px; background: rgba(255,255,255,0.12); margin-top: 6px; overflow: hidden; }
+  .bar > i { display: block; height: 100%; width: 0; background: linear-gradient(90deg, var(--accent), var(--accent-2)); transition: width .2s; }
+  .item.done .sub { color: var(--ok); }
+  .item.fail .sub { color: var(--err); }
+  .foot { text-align: center; margin-top: 22px; font-size: 13px; color: var(--muted); }
+  .foot a { color: var(--accent); text-decoration: none; font-weight: 600; }
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <div class="brand"><span class="dot">📸</span><span id="brandTitle">Fotos na TV</span></div>
+  <nav class="navlinks">
+    <a href="/upload" class="active">Enviar</a>
+    <a href="/album">Álbum</a>
+  </nav>
+</div>
+
+<div class="wrap">
+  <div class="card">
+    <div class="hero">
+      <div class="ring">🎉</div>
+      <h1 id="eventTitle">Álbum da Festa</h1>
+      <p class="muted" id="eventSubtitle">Mande sua foto para o telão</p>
+    </div>
+
+    <label class="field">
+      Seu nome (aparece junto da foto na TV)
+      <input type="text" id="author" placeholder="Ex.: Rafael" maxlength="40" autocomplete="name">
+    </label>
+
+    <div class="pickers">
+      <label class="picker" for="fileCamera">
+        <span class="ico">📷</span>
+        <span>Tirar foto agora</span>
+      </label>
+      <input id="fileCamera" type="file" accept="image/*" capture="environment" hidden>
+
+      <label class="picker" for="fileGallery">
+        <span class="ico">🖼️</span>
+        <span>Escolher da galeria</span>
+      </label>
+      <input id="fileGallery" type="file" accept="image/*" multiple hidden>
+    </div>
+
+    <div class="status" id="status"></div>
+    <div class="queue" id="queue"></div>
+
+    <div class="foot">
+      Enviou? Dê uma olhada no <a href="/album">álbum da festa</a> 👀
+    </div>
+  </div>
+</div>
+
+<script>
+(function () {
+  "use strict";
+
+  var MAX_DIM = 1920;        // maior lado enviado
+  var JPEG_QUALITY = 0.86;
+  var SKIP_RESIZE_BELOW = 1200000; // < ~1,2 MB ja esta bom, sobe como veio
+
+  var $ = function (id) { return document.getElementById(id); };
+  var authorInput = $("author");
+  var statusEl = $("status");
+  var queueEl = $("queue");
+
+  // Nome fica salvo no proprio celular entre uploads
+  try {
+    var saved = localStorage.getItem("fotostv.author");
+    if (saved) authorInput.value = saved;
+  } catch (e) { /* modo privativo */ }
+
+  authorInput.addEventListener("change", function () {
+    try { localStorage.setItem("fotostv.author", authorInput.value.trim()); } catch (e) {}
+  });
+
+  // ---------- titulo da festa ----------
+  fetch("/api/info").then(function (r) { return r.json(); }).then(function (info) {
+    var s = info.settings || {};
+    if (s.eventTitle) {
+      $("eventTitle").textContent = s.eventTitle;
+      $("brandTitle").textContent = s.eventTitle;
+      document.title = s.eventTitle;
+    }
+    if (s.subtitle) $("eventSubtitle").textContent = s.subtitle;
+  }).catch(function () {});
+
+  // ---------- EXIF ----------
+  // Lemos a orientacao no proprio arquivo para poder girar a foto na hora de
+  // redimensionar. Sem isso, foto de iPhone chega deitada no telao.
+  function exifOrientation(file) {
+    return new Promise(function (resolve) {
+      var reader = new FileReader();
+      reader.onerror = function () { resolve(1); };
+      reader.onload = function (e) {
+        try {
+          var view = new DataView(e.target.result);
+          if (view.byteLength < 4 || view.getUint16(0, false) !== 0xFFD8) return resolve(1);
+          var offset = 2;
+          while (offset + 4 < view.byteLength) {
+            var marker = view.getUint16(offset, false);
+            offset += 2;
+            if (marker === 0xFFE1) {
+              if (view.getUint32(offset + 2, false) !== 0x45786966) return resolve(1);
+              var tiff = offset + 8;
+              var little = view.getUint16(tiff, false) === 0x4949;
+              var ifd = tiff + view.getUint32(tiff + 4, little);
+              var tags = view.getUint16(ifd, little);
+              for (var i = 0; i < tags; i++) {
+                var entry = ifd + 2 + i * 12;
+                if (view.getUint16(entry, little) === 0x0112) {
+                  return resolve(view.getUint16(entry + 8, little) || 1);
+                }
+              }
+              return resolve(1);
+            }
+            if ((marker & 0xFF00) !== 0xFF00) break;
+            offset += view.getUint16(offset, false);
+          }
+        } catch (err) { /* ignora */ }
+        resolve(1);
+      };
+      reader.readAsArrayBuffer(file.slice(0, 131072));
+    });
+  }
+
+  function drawOriented(bitmap, orientation, maxDim) {
+    var w = bitmap.width, h = bitmap.height;
+    var scale = Math.min(1, maxDim / Math.max(w, h));
+    var sw = Math.round(w * scale), sh = Math.round(h * scale);
+    var swap = orientation >= 5 && orientation <= 8;
+
+    var canvas = document.createElement("canvas");
+    canvas.width = swap ? sh : sw;
+    canvas.height = swap ? sw : sh;
+
+    var ctx = canvas.getContext("2d");
+    switch (orientation) {
+      case 2: ctx.transform(-1, 0, 0, 1, sw, 0); break;
+      case 3: ctx.transform(-1, 0, 0, -1, sw, sh); break;
+      case 4: ctx.transform(1, 0, 0, -1, 0, sh); break;
+      case 5: ctx.transform(0, 1, 1, 0, 0, 0); break;
+      case 6: ctx.transform(0, 1, -1, 0, sh, 0); break;
+      case 7: ctx.transform(0, -1, -1, 0, sh, sw); break;
+      case 8: ctx.transform(0, -1, 1, 0, 0, sw); break;
+      default: break;
+    }
+    ctx.drawImage(bitmap, 0, 0, sw, sh);
+    return canvas;
+  }
+
+  /**
+   * Reduz a foto no proprio celular antes de subir: a festa inteira usando o
+   * mesmo Wi-Fi agradece. Se o navegador for antigo, manda o arquivo original
+   * e o aparelho da TV se vira (ele tambem corrige EXIF e redimensiona).
+   */
+  function prepare(file) {
+    if (!window.createImageBitmap || !window.File || file.size < SKIP_RESIZE_BELOW) {
+      return Promise.resolve(file);
+    }
+    return exifOrientation(file).then(function (orientation) {
+      return createImageBitmap(file, { imageOrientation: "none" }).then(function (bitmap) {
+        var canvas = drawOriented(bitmap, orientation, MAX_DIM);
+        bitmap.close && bitmap.close();
+        return new Promise(function (resolve) {
+          if (!canvas.toBlob) return resolve(file);
+          canvas.toBlob(function (blob) {
+            resolve(blob && blob.size > 0 && blob.size < file.size ? blob : file);
+          }, "image/jpeg", JPEG_QUALITY);
+        });
+      });
+    }).catch(function () { return file; });
+  }
+
+  // ---------- fila de envio ----------
+  var queue = [];
+  var sending = false;
+
+  function addFiles(files) {
+    if (!files || !files.length) return;
+    for (var i = 0; i < files.length; i++) {
+      var file = files[i];
+      if (!file.type || file.type.indexOf("image/") !== 0) continue;
+      queue.push(makeItem(file));
+    }
+    pump();
+  }
+
+  function makeItem(file) {
+    var row = document.createElement("div");
+    row.className = "item";
+    row.innerHTML =
+      '<img alt="">' +
+      '<div class="meta">' +
+        '<div class="name"></div>' +
+        '<div class="sub">Na fila…</div>' +
+        '<div class="bar"><i></i></div>' +
+      '</div>';
+    row.querySelector(".name").textContent = file.name || "foto.jpg";
+    queueEl.insertBefore(row, queueEl.firstChild);
+
+    var url = URL.createObjectURL(file);
+    var img = row.querySelector("img");
+    img.src = url;
+    img.onload = function () { URL.revokeObjectURL(url); };
+
+    return { file: file, row: row };
+  }
+
+  function setSub(item, text, cls) {
+    item.row.querySelector(".sub").textContent = text;
+    if (cls) item.row.classList.add(cls);
+  }
+
+  function setProgress(item, pct) {
+    item.row.querySelector(".bar > i").style.width = pct + "%";
+  }
+
+  function pump() {
+    if (sending) return;
+    var item = queue.shift();
+    if (!item) {
+      statusEl.textContent = "";
+      return;
+    }
+    sending = true;
+    setSub(item, "Preparando…");
+
+    prepare(item.file).then(function (payload) {
+      send(item, payload);
+    }).catch(function () {
+      send(item, item.file);
+    });
+  }
+
+  function send(item, payload) {
+    var form = new FormData();
+    var filename = (item.file.name || "foto.jpg").replace(/[^\w.\-]+/g, "_");
+    form.append("file", payload, filename);
+    form.append("author", authorInput.value.trim());
+
+    var xhr = new XMLHttpRequest();
+    xhr.open("POST", "/api/upload", true);
+
+    xhr.upload.onprogress = function (e) {
+      if (!e.lengthComputable) return;
+      var pct = Math.round((e.loaded / e.total) * 100);
+      setProgress(item, pct);
+      setSub(item, "Enviando… " + pct + "%");
+    };
+
+    xhr.onload = function () {
+      sending = false;
+      setProgress(item, 100);
+      if (xhr.status >= 200 && xhr.status < 300) {
+        setSub(item, "No telão! 🎉", "done");
+        statusEl.className = "status ok";
+        statusEl.textContent = "Foto enviada, olha a TV!";
+      } else {
+        var msg = "Não deu certo.";
+        try { msg = JSON.parse(xhr.responseText).error || msg; } catch (e) {}
+        setSub(item, msg, "fail");
+        statusEl.className = "status err";
+        statusEl.textContent = msg;
+      }
+      pump();
+    };
+
+    xhr.onerror = function () {
+      sending = false;
+      setSub(item, "Sem conexão com a TV.", "fail");
+      statusEl.className = "status err";
+      statusEl.textContent = "Perdi a conexão. Confira se você está no Wi-Fi da festa.";
+      pump();
+    };
+
+    xhr.send(form);
+  }
+
+  $("fileCamera").addEventListener("change", function (e) {
+    addFiles(e.target.files);
+    e.target.value = "";
+  });
+
+  $("fileGallery").addEventListener("change", function (e) {
+    addFiles(e.target.files);
+    e.target.value = "";
+  });
+})();
+</script>
+</body>
+</html>
