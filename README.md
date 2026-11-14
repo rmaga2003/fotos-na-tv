@@ -1,5 +1,7 @@
 # Fotos na TV
 
+**Baixar o app: [rmaga2003.github.io/fotos-na-tv](https://rmaga2003.github.io/fotos-na-tv/)**
+
 Álbum de fotos ao vivo para festas. Os convidados escaneiam um QR code, mandam
 a foto pelo celular e ela aparece na TV na hora.
 
@@ -66,9 +68,14 @@ ligue **Instalar apps desconhecidos** para o app **Downloader**.
 
 ### 2. Baixar o APK
 
-Instale o app **Downloader** (está na loja da Amazon), abra e digite o
-endereço do APK publicado em *Releases*. O Downloader baixa e já oferece
-instalar.
+Instale o app **Downloader** (está na loja da Amazon), abra e digite:
+
+```
+rmaga2003.github.io/fotos-na-tv
+```
+
+Na página que abrir, clique em **Baixar o APK**. O Downloader baixa e já
+oferece instalar.
 
 ### 3. Abrir
 
