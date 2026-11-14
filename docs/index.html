@@ -1,0 +1,309 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Fotos na TV</title>
+<meta name="description" content="Álbum de fotos ao vivo para festas, rodando dentro do próprio Fire TV. Os convidados mandam fotos pelo celular e elas aparecem na TV na hora.">
+<meta property="og:title" content="Fotos na TV">
+<meta property="og:description" content="Os convidados mandam fotos pelo celular e elas aparecem na TV na hora. Sem notebook, sem internet, sem nuvem.">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>📸</text></svg>">
+<style>
+  :root {
+    --bg: #0b0718;
+    --bg2: #16102b;
+    --card: rgba(255,255,255,.055);
+    --border: rgba(255,255,255,.13);
+    --text: #f5f2ff;
+    --muted: #a89ec4;
+    --accent: #ffca28;
+    --accent2: #ff7043;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html { scroll-behavior: smooth; }
+  body {
+    background:
+      radial-gradient(1100px 560px at 50% -8%, #2f1c5c 0%, transparent 62%),
+      linear-gradient(180deg, var(--bg2) 0%, var(--bg) 55%);
+    background-attachment: fixed;
+    color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, system-ui, sans-serif;
+    line-height: 1.6;
+    padding-bottom: 60px;
+  }
+  .wrap { max-width: 820px; margin: 0 auto; padding: 0 20px; }
+
+  /* ---------- topo ---------- */
+  header { text-align: center; padding: 56px 0 38px; }
+  .mark {
+    width: 92px; height: 92px; margin: 0 auto 20px;
+    border-radius: 26px; display: grid; place-items: center; font-size: 42px;
+    background: linear-gradient(135deg, var(--accent), #7b2ff7);
+    box-shadow: 0 16px 44px rgba(255,170,60,.3);
+  }
+  h1 { font-size: clamp(34px, 7vw, 50px); line-height: 1.1; letter-spacing: -.02em; }
+  .tag { color: var(--muted); font-size: clamp(16px, 3.4vw, 19px); margin-top: 14px; }
+  .tag b { color: var(--text); font-weight: 600; }
+
+  .cta { margin-top: 32px; }
+  .download {
+    display: inline-flex; align-items: center; gap: 12px;
+    padding: 19px 38px; border-radius: 999px;
+    background: linear-gradient(135deg, var(--accent), var(--accent2));
+    color: #1a1005; font-size: 20px; font-weight: 800; text-decoration: none;
+    box-shadow: 0 16px 38px rgba(255,140,40,.3);
+  }
+  .download:hover { transform: translateY(-2px); }
+  .cta .sub { color: var(--muted); font-size: 14px; margin-top: 12px; }
+  .cta .sub a { color: var(--muted); }
+
+  /* ---------- seções ---------- */
+  section { margin-top: 52px; }
+  h2 { font-size: clamp(22px, 4.6vw, 28px); margin-bottom: 8px; letter-spacing: -.01em; }
+  .lead { color: var(--muted); margin-bottom: 22px; }
+
+  .cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 14px; }
+  .card {
+    background: var(--card); border: 1px solid var(--border);
+    border-radius: 18px; padding: 22px;
+  }
+  .card .ico { font-size: 28px; display: block; margin-bottom: 10px; }
+  .card h3 { font-size: 17px; margin-bottom: 6px; }
+  .card p { color: var(--muted); font-size: 14.5px; }
+
+  ol.steps { list-style: none; counter-reset: s; }
+  ol.steps > li {
+    counter-increment: s; position: relative;
+    padding: 18px 0 18px 58px;
+    border-bottom: 1px solid var(--border);
+  }
+  ol.steps > li:last-child { border-bottom: 0; }
+  ol.steps > li::before {
+    content: counter(s);
+    position: absolute; left: 0; top: 16px;
+    width: 36px; height: 36px; border-radius: 50%;
+    display: grid; place-items: center;
+    background: rgba(255,202,40,.14); border: 1px solid rgba(255,202,40,.45);
+    color: var(--accent); font-weight: 800; font-size: 16px;
+  }
+  ol.steps strong { display: block; margin-bottom: 3px; }
+  ol.steps span { color: var(--muted); font-size: 15px; }
+
+  code, .url {
+    background: rgba(0,0,0,.42); border: 1px solid var(--border);
+    border-radius: 8px; padding: 2px 8px;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    font-size: .92em; color: var(--accent); word-break: break-all;
+  }
+  .url.big {
+    display: block; text-align: center; padding: 14px;
+    font-size: clamp(16px, 3.6vw, 21px); margin: 14px 0 4px; font-weight: 700;
+  }
+
+  details {
+    background: var(--card); border: 1px solid var(--border);
+    border-radius: 14px; padding: 16px 18px; margin-bottom: 10px;
+  }
+  summary { cursor: pointer; font-weight: 600; }
+  details p { color: var(--muted); margin-top: 10px; font-size: 15px; }
+
+  .note {
+    border-left: 3px solid var(--accent); background: rgba(255,202,40,.07);
+    border-radius: 0 12px 12px 0; padding: 14px 18px; margin-top: 18px;
+    color: var(--muted); font-size: 15px;
+  }
+
+  footer {
+    margin-top: 60px; padding-top: 26px; border-top: 1px solid var(--border);
+    text-align: center; color: var(--muted); font-size: 14px;
+  }
+  footer a { color: var(--accent); text-decoration: none; }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header>
+    <div class="mark">📸</div>
+    <h1>Fotos na TV</h1>
+    <p class="tag">
+      Os convidados mandam fotos pelo celular e elas aparecem <b>na TV, na hora</b>.<br>
+      Sem notebook ligado na TV, sem internet, sem nuvem.
+    </p>
+    <div class="cta">
+      <a class="download" href="https://github.com/rmaga2003/fotos-na-tv/releases/latest/download/fotos-na-tv.apk">
+        ⬇ Baixar o APK
+      </a>
+      <div class="sub">
+        Para Fire TV Stick e Android TV · 3 MB · grátis e sem anúncios<br>
+        <a href="https://github.com/rmaga2003/fotos-na-tv">código aberto no GitHub</a>
+      </div>
+    </div>
+  </header>
+
+  <section>
+    <h2>Como funciona</h2>
+    <p class="lead">O app vira o servidor da festa dentro do aparelho ligado na TV.</p>
+    <div class="cards">
+      <div class="card">
+        <span class="ico">📺</span>
+        <h3>A TV mostra o QR</h3>
+        <p>Abra o app no Fire TV. Ele detecta sozinho o endereço na rede e mostra o QR code no telão.</p>
+      </div>
+      <div class="card">
+        <span class="ico">📲</span>
+        <h3>O convidado escaneia</h3>
+        <p>Aponta a câmera, escolhe a foto ou tira na hora, coloca o nome e envia. Não instala nada.</p>
+      </div>
+      <div class="card">
+        <span class="ico">🎉</span>
+        <h3>Aparece no telão</h3>
+        <p>A foto entra em destaque com o nome de quem mandou e depois entra no rodízio do álbum.</p>
+      </div>
+    </div>
+    <div class="note">
+      Tudo acontece no Wi-Fi da casa. As fotos ficam no próprio aparelho da TV e
+      não sobem para lugar nenhum. Dá para baixar o álbum inteiro em <code>.zip</code> no fim da festa.
+    </div>
+  </section>
+
+  <section>
+    <h2>Instalar no Fire TV Stick</h2>
+    <p class="lead">Leva uns 3 minutos e não precisa de computador.</p>
+    <ol class="steps">
+      <li>
+        <strong>Libere a instalação</strong>
+        <span>
+          No Fire TV: <code>Configurações</code> → <code>Meu Fire TV</code> →
+          <code>Opções do desenvolvedor</code> → ligue
+          <code>Instalar apps desconhecidos</code> para o app <code>Downloader</code>.
+        </span>
+      </li>
+      <li>
+        <strong>Não aparece "Opções do desenvolvedor"?</strong>
+        <span>
+          Vá em <code>Configurações</code> → <code>Meu Fire TV</code> →
+          <code>Sobre</code> e clique 7 vezes em <code>Fire TV Stick</code>. Ela aparece.
+        </span>
+      </li>
+      <li>
+        <strong>Instale o app Downloader</strong>
+        <span>Procure por <code>Downloader</code> na loja da Amazon (é gratuito) e instale.</span>
+      </li>
+      <li>
+        <strong>Abra esta página no Downloader</strong>
+        <span>
+          No Downloader, digite este endereço e aperte Ir:
+          <span class="url big">rmaga2003.github.io/fotos-na-tv</span>
+          Depois é só clicar no botão <b>Baixar o APK</b> aqui de cima.
+        </span>
+      </li>
+      <li>
+        <strong>Instale e abra</strong>
+        <span>
+          O Downloader pergunta se quer instalar — confirme. O app fica na linha
+          <code>Seus aplicativos e canais</code> da tela inicial. Segure o botão do
+          controle sobre ele para mover para o começo.
+        </span>
+      </li>
+    </ol>
+  </section>
+
+  <section>
+    <h2>Instalar em Android TV, TV Box ou celular</h2>
+    <p class="lead">
+      O APK é o mesmo. Baixe pelo navegador do aparelho e permita a instalação de
+      fontes desconhecidas quando o Android pedir. Em celular e tablet o app também
+      funciona — útil para testar antes da festa.
+    </p>
+  </section>
+
+  <section>
+    <h2>Na hora da festa</h2>
+    <ol class="steps">
+      <li>
+        <strong>Abra o app</strong>
+        <span>A TV já mostra o QR code e o endereço no canto.</span>
+      </li>
+      <li>
+        <strong>Configure pelo celular</strong>
+        <span>
+          Acesse o endereço que aparece na TV e entre em <code>/admin</code>.
+          Dá para mudar o nome da festa, o tempo de cada foto e a contagem regressiva.
+        </span>
+      </li>
+      <li>
+        <strong>Coloque o Wi-Fi no QR</strong>
+        <span>
+          Preenchendo rede e senha no painel, a TV passa a mostrar dois QR codes: um
+          conecta o celular no Wi-Fi sem digitar senha, o outro abre a página de enviar foto.
+          É o que mais economiza explicação na festa.
+        </span>
+      </li>
+    </ol>
+    <div class="note">
+      <b>Pelo controle remoto:</b> ◄ ► passa as fotos · <b>OK</b> pausa ·
+      <b>▲</b> mostra o QR em tela cheia · <b>▼</b> abre o menu de ajustes.
+    </div>
+  </section>
+
+  <section>
+    <h2>Dúvidas rápidas</h2>
+
+    <details>
+      <summary>Precisa de internet?</summary>
+      <p>
+        Não. Só do Wi-Fi da casa, para os celulares conversarem com o aparelho da TV.
+        Pode cair a internet no meio da festa que o álbum continua funcionando.
+      </p>
+    </details>
+
+    <details>
+      <summary>Os convidados precisam instalar alguma coisa?</summary>
+      <p>Não. Eles só escaneiam o QR e usam o navegador do celular.</p>
+    </details>
+
+    <details>
+      <summary>Onde ficam as fotos?</summary>
+      <p>
+        No armazenamento interno do app, dentro do aparelho ligado na TV. Não vão
+        para nenhum servidor. Baixe o <code>.zip</code> pelo painel antes de
+        desinstalar se quiser guardar.
+      </p>
+    </details>
+
+    <details>
+      <summary>O celular não abre o endereço da TV</summary>
+      <p>
+        Quase sempre é uma destas três: o celular está em outra rede (cuidado com
+        2,4 GHz e 5 GHz separadas), o Fire TV está sem Wi-Fi, ou o roteador está com
+        <i>isolamento de clientes</i> ligado — essa opção impede um aparelho de falar
+        com outro na mesma rede e precisa ser desligada no roteador.
+      </p>
+    </details>
+
+    <details>
+      <summary>Não consigo atualizar o app</summary>
+      <p>
+        Se você instalou uma versão antiga assinada com outra chave, desinstale antes
+        de instalar a nova.
+      </p>
+    </details>
+
+    <details>
+      <summary>Dá para usar em aniversário, casamento, formatura?</summary>
+      <p>
+        Sim. O título, a chamada e a contagem regressiva são configuráveis no painel —
+        nada está preso a Ano Novo.
+      </p>
+    </details>
+  </section>
+
+  <footer>
+    Feito com carinho para as festas da família 🎆<br>
+    <a href="https://github.com/rmaga2003/fotos-na-tv">github.com/rmaga2003/fotos-na-tv</a>
+  </footer>
+
+</div>
+</body>
+</html>
