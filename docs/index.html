@@ -57,6 +57,23 @@
   .cta .sub { color: var(--muted); font-size: 14px; margin-top: 12px; }
   .cta .sub a { color: var(--muted); }
 
+  .codebox {
+    max-width: 420px; margin: 30px auto 0; padding: 20px 24px;
+    border-radius: 20px; background: var(--card);
+    border: 1px solid rgba(255,202,40,.35);
+  }
+  .codebox .k {
+    font-size: 13px; text-transform: uppercase; letter-spacing: .09em;
+    color: var(--muted);
+  }
+  .codebox .v {
+    font-size: clamp(38px, 9vw, 52px); font-weight: 800; letter-spacing: .14em;
+    color: var(--accent); line-height: 1.15; margin: 6px 0 4px;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  }
+  .codebox .s { font-size: 14px; color: var(--muted); }
+  .codebox .s b { color: var(--text); font-weight: 600; }
+
   /* ---------- seções ---------- */
   section { margin-top: 52px; }
   h2 { font-size: clamp(22px, 4.6vw, 28px); margin-bottom: 8px; letter-spacing: -.01em; }
@@ -138,6 +155,12 @@
         Para Fire TV Stick e Android TV · 3 MB · grátis e sem anúncios<br>
         <a href="https://github.com/rmaga2003/fotos-na-tv">código aberto no GitHub</a>
       </div>
+
+      <div class="codebox">
+        <div class="k">No Fire TV, digite no app Downloader</div>
+        <div class="v">6387552</div>
+        <div class="s">é só o número — o app baixa e instala sozinho</div>
+      </div>
     </div>
   </header>
 
@@ -191,11 +214,12 @@
         <span>Procure por <code>Downloader</code> na loja da Amazon (é gratuito) e instale.</span>
       </li>
       <li>
-        <strong>Abra esta página no Downloader</strong>
+        <strong>Digite o código no Downloader</strong>
         <span>
-          No Downloader, digite este endereço e aperte Ir:
-          <span class="url big">rmaga2003.github.io/fotos-na-tv</span>
-          Depois é só clicar no botão <b>Baixar o APK</b> aqui de cima.
+          No campo de endereço do Downloader, digite só estes sete números e aperte Ir:
+          <span class="url big">6387552</span>
+          O download começa na hora. Se preferir digitar um endereço, use
+          <code>rmaga2003.github.io/fotos-na-tv</code> e clique em <b>Baixar o APK</b>.
         </span>
       </li>
       <li>
@@ -283,10 +307,15 @@
     </details>
 
     <details>
-      <summary>Não consigo atualizar o app</summary>
+      <summary>Como atualizo para uma versão nova?</summary>
       <p>
-        Se você instalou uma versão antiga assinada com outra chave, desinstale antes
-        de instalar a nova.
+        O código <code>6387552</code> sempre entrega a versão mais recente — basta
+        digitá-lo de novo no Downloader e instalar por cima. Não precisa de código novo
+        a cada atualização.
+      </p>
+      <p>
+        A única exceção: se você instalou uma versão antiga assinada com outra chave,
+        o Android recusa a instalação. Aí desinstale antes.
       </p>
     </details>
 

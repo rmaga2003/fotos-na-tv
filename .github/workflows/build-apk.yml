@@ -87,6 +87,8 @@ jobs:
           body: |
             ## Fotos na TV — ${{ github.ref_name }}
 
-            Baixe o `fotos-na-tv.apk` abaixo e instale no seu Fire TV Stick
-            ou Android TV. O passo a passo está no
-            [README](https://github.com/${{ github.repository }}#instalar-no-fire-tv-stick).
+            **No Fire TV:** abra o app **Downloader** e digite o código **6387552**.
+            Ele aponta sempre para a release mais recente, então já traz esta versão.
+
+            Ou baixe o `fotos-na-tv.apk` abaixo e instale manualmente.
+            Passo a passo completo em https://rmaga2003.github.io/fotos-na-tv/

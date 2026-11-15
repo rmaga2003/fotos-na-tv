@@ -1,6 +1,7 @@
 # Fotos na TV
 
-**Baixar o app: [rmaga2003.github.io/fotos-na-tv](https://rmaga2003.github.io/fotos-na-tv/)**
+**Instalar no Fire TV:** abra o app **Downloader** e digite o código **`6387552`**
+**Página de download:** [rmaga2003.github.io/fotos-na-tv](https://rmaga2003.github.io/fotos-na-tv/)
 
 Álbum de fotos ao vivo para festas. Os convidados escaneiam um QR code, mandam
 a foto pelo celular e ela aparece na TV na hora.
@@ -68,14 +69,19 @@ ligue **Instalar apps desconhecidos** para o app **Downloader**.
 
 ### 2. Baixar o APK
 
-Instale o app **Downloader** (está na loja da Amazon), abra e digite:
+Instale o app **Downloader** (está na loja da Amazon), abra e digite no campo
+de endereço apenas o código:
 
 ```
-rmaga2003.github.io/fotos-na-tv
+6387552
 ```
 
-Na página que abrir, clique em **Baixar o APK**. O Downloader baixa e já
-oferece instalar.
+O download começa na hora e o Downloader já oferece instalar.
+
+> O código é um atalho do AFTVnews (`aftv.news/6387552`) apontando para a
+> release `latest`. Ou seja: **ele não muda a cada versão** — digitar o mesmo
+> número sempre traz o APK mais recente. Se preferir digitar um endereço, use
+> `rmaga2003.github.io/fotos-na-tv` e clique em *Baixar o APK*.
 
 ### 3. Abrir
 
@@ -134,7 +140,9 @@ git tag v1.0.0
 git push origin v1.0.0
 ```
 
-O workflow cria uma *Release* com o `fotos-na-tv.apk` anexado.
+O workflow cria uma *Release* com o `fotos-na-tv.apk` anexado. Como o código
+`6387552` aponta para `releases/latest`, ele passa a servir a versão nova
+automaticamente — não precisa gerar atalho novo nem avisar ninguém.
 
 #### Chave de assinatura
 
