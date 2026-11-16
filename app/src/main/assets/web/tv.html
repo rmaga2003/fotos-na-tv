@@ -184,6 +184,31 @@
   }
 
   .warn { color: #ff9e9e; }
+
+  /* ---------- diagnostico de rede ---------- */
+  #diagBox {
+    width: min(92vmin, 94vw); text-align: left;
+    background: rgba(16, 10, 32, .97);
+    border: 1px solid var(--border); border-radius: 2.4vmin;
+    padding: 3.5vmin 4vmin;
+  }
+  #diagBox h1 { font-size: 3.6vmin; margin-bottom: 2.5vmin; color: var(--accent); text-align: center; }
+  .drow {
+    display: flex; justify-content: space-between; gap: 3vmin;
+    padding: 1.3vmin 0; border-bottom: 1px solid rgba(255,255,255,.09);
+    font-size: 2.1vmin;
+  }
+  .drow:last-child { border-bottom: 0; }
+  .drow .dk { opacity: .72; }
+  .drow .dv { font-weight: 700; text-align: right; }
+  .drow .dv.mono { font-family: ui-monospace, Menlo, Consolas, monospace; color: var(--accent); }
+  .verdict {
+    margin-top: 2.5vmin; padding: 2vmin 2.5vmin; border-radius: 1.4vmin;
+    font-size: 2.1vmin; line-height: 1.5;
+  }
+  .verdict.bad { background: rgba(255, 90, 90, .13); border: 1px solid rgba(255,120,120,.45); }
+  .verdict.good { background: rgba(126, 226, 168, .12); border: 1px solid rgba(126,226,168,.45); }
+  .verdict b { color: var(--accent); }
 </style>
 </head>
 <body>
@@ -239,6 +264,14 @@
     <h1>Manda a sua foto 📲</h1>
     <p>Aponte a câmera do celular para o QR code</p>
     <div class="bigqrs" id="bigQrs"></div>
+  </div>
+</div>
+
+<!-- diagnostico de rede (menu do controle) -->
+<div class="overlay" id="diag">
+  <div id="diagBox">
+    <h1>Diagnóstico da rede</h1>
+    <div id="diagBody"></div>
   </div>
 </div>
 
@@ -596,6 +629,8 @@
         run: function () { saveSettings({ showThumbs: !cfg.showThumbs }); applyVisibility(); } },
       { label: "Informações no topo", value: cfg.showStats ? "sim" : "não",
         run: function () { saveSettings({ showStats: !cfg.showStats }); applyVisibility(); } },
+      { label: "Diagnóstico da rede", value: "",
+        run: function () { setMenu(false); openDiag(); } },
       { label: "Apagar a foto atual", value: "", danger: true,
         run: function () { deleteCurrent(); } },
       { label: "Fechar o app", value: "", danger: true,
@@ -636,11 +671,96 @@
   }
 
   // ------------------------------------------------------------------
+  // Diagnóstico de rede
+  // ------------------------------------------------------------------
+  var diagOpen = false;
+
+  function ipPrefix(ip) {
+    var p = String(ip).split(".");
+    return p.length === 4 ? p[0] + "." + p[1] + "." + p[2] + ".x" : ip;
+  }
+
+  function openDiag() {
+    diagOpen = true;
+    captureBack(true);
+    $("diag").classList.add("show");
+    renderDiag();
+    // relê na hora: os contadores mudam a cada tentativa do celular
+    fetch("/api/info", { cache: "no-store" })
+      .then(function (r) { return r.json(); })
+      .then(function (data) { info = data; renderDiag(); })
+      .catch(function () {});
+  }
+
+  function closeDiag() {
+    diagOpen = false;
+    captureBack(false);
+    $("diag").classList.remove("show");
+  }
+
+  function renderDiag() {
+    var d = (info && info.diagnostics) || {};
+    var addrs = d.addresses || [];
+    var rows = "";
+
+    function row(k, v, mono) {
+      rows += '<div class="drow"><span class="dk">' + k + '</span>' +
+              '<span class="dv' + (mono ? " mono" : "") + '">' + escapeHtml(v) + "</span></div>";
+    }
+
+    row("Endereço para os convidados",
+        info.uploadUrl ? info.uploadUrl.replace("http://", "") : "nenhum", true);
+
+    if (addrs.length) {
+      addrs.forEach(function (a, i) {
+        row(i === 0 ? "Endereços deste aparelho" : " ", a.ip + "   (" + a.iface + ")", true);
+      });
+    } else {
+      row("Endereços deste aparelho", "nenhum", true);
+    }
+
+    row("Celulares que já conectaram", String(d.lanRequests || 0));
+    if (d.lastRemoteIp) {
+      row("Último celular", d.lastRemoteIp + " · " + relative(d.lastRemoteAt), true);
+    }
+
+    var veredito;
+    if (!addrs.length) {
+      veredito =
+        '<div class="verdict bad"><b>O Fire TV está sem rede.</b> ' +
+        'Conecte este aparelho ao Wi-Fi da casa em Configurações → Rede e abra o app de novo.</div>';
+    } else if (!d.lanRequests) {
+      veredito =
+        '<div class="verdict bad"><b>Nenhum celular chegou até aqui ainda.</b> ' +
+        'O app está no ar e escutando — o que está barrando é a rede:<br><br>' +
+        '1. O celular precisa estar no <b>mesmo Wi-Fi</b>. Cuidado com rede de convidados e com 2,4 GHz / 5 GHz publicadas como redes separadas.<br>' +
+        '2. O IP do celular tem que começar igual a este: <b>' + escapeHtml(ipPrefix(addrs[0].ip)) + '</b><br>' +
+        '3. Se o começo bate e mesmo assim não abre, o roteador está com <b>isolamento de clientes</b> ligado. Desligue essa opção.</div>';
+    } else {
+      veredito =
+        '<div class="verdict good"><b>A rede está funcionando.</b> ' + d.lanRequests +
+        ' acessos já chegaram de celulares. Se alguém ainda não consegue, é o aparelho dessa pessoa que está em outra rede.</div>';
+    }
+
+    $("diagBody").innerHTML = rows + veredito;
+  }
+
+  // ------------------------------------------------------------------
   // Controle remoto
   // ------------------------------------------------------------------
   var bigQrOpen = false;
 
+  /** Enquanto houver overlay aberto, o botao Voltar fecha o overlay em vez de sair do app. */
+  function captureBack(on) {
+    if (window.AndroidTv && AndroidTv.setMenuOpen) AndroidTv.setMenuOpen(on);
+  }
+
   window.tvRemote = function (action) {
+    if (diagOpen) {
+      closeDiag();
+      return;
+    }
+
     if (menuOpen) {
       var model = menuModel();
       if (action === "up") { menuSel = (menuSel - 1 + model.length) % model.length; renderMenu(); }
@@ -650,8 +770,10 @@
       return;
     }
 
-    if (bigQrOpen && (action === "back" || action === "up" || action === "ok")) {
+    if (bigQrOpen) {
+      // qualquer tecla fecha: e mais perdoavel com o controle na mao
       bigQrOpen = false;
+      captureBack(false);
       $("bigQr").classList.remove("show");
       return;
     }
@@ -666,6 +788,7 @@
         break;
       case "up":
         bigQrOpen = true;
+        captureBack(true);
         $("bigQr").classList.add("show");
         break;
       case "down":
@@ -752,7 +875,7 @@
   // Laços
   // ------------------------------------------------------------------
   function tick() {
-    if (celebrating || menuOpen || !photos.length) return;
+    if (celebrating || menuOpen || diagOpen || bigQrOpen || !photos.length) return;
     if (paused || busy) return;
     if (now() < holdUntil) return;
     if (now() < nextSwitchAt) return;

@@ -8,12 +8,14 @@ import fi.iki.elonen.NanoHTTPD.Method
 import fi.iki.elonen.NanoHTTPD.Response
 import fi.iki.elonen.NanoHTTPD.newChunkedResponse
 import fi.iki.elonen.NanoHTTPD.newFixedLengthResponse
+import org.json.JSONArray
 import org.json.JSONObject
 import java.io.ByteArrayInputStream
 import java.io.File
 import java.io.FileInputStream
 import java.io.PipedInputStream
 import java.io.PipedOutputStream
+import java.util.concurrent.atomic.AtomicInteger
 import java.util.zip.ZipEntry
 import java.util.zip.ZipOutputStream
 
@@ -34,7 +36,26 @@ class PhotoServer(
     /** Chamado quando uma foto nova chega (a TV usa para reagir na hora). */
     var onPhotoAdded: ((PhotoStore.Photo) -> Unit)? = null
 
+    /*
+     * Contadores de quem veio da rede (e nao do proprio WebView da TV).
+     * Sao a resposta para a pergunta mais dificil de responder numa festa:
+     * "o celular chega a falar com a TV?". Zero aqui significa problema de
+     * rede; maior que zero significa que a rede esta ok.
+     */
+    private val lanRequests = AtomicInteger(0)
+
+    @Volatile
+    private var lastRemoteIp: String? = null
+
+    @Volatile
+    private var lastRemoteAt: Long = 0L
+
     override fun serve(session: IHTTPSession): Response {
+        if (!isLoopback(session)) {
+            lanRequests.incrementAndGet()
+            lastRemoteIp = session.remoteIpAddress
+            lastRemoteAt = System.currentTimeMillis()
+        }
         return try {
             route(session)
         } catch (e: Throwable) {
@@ -120,8 +141,26 @@ class PhotoServer(
             put("settings", settings.toJson())
             put("wifiPayload", QrUtils.wifiPayload(settings.wifiSsid, settings.wifiPassword, settings.wifiSecurity))
             put("hasWifi", settings.wifiSsid.isNotBlank())
+            put("diagnostics", diagnostics())
         }
         return noStore(json(Response.Status.OK, body))
+    }
+
+    /** Tudo que a tela de diagnostico da TV precisa para apontar o culpado. */
+    private fun diagnostics(): JSONObject {
+        val enderecos = JSONArray()
+        NetUtils.allIpv4().forEach { addr ->
+            enderecos.put(
+                JSONObject().put("iface", addr.iface).put("ip", addr.ip)
+            )
+        }
+        return JSONObject().apply {
+            put("addresses", enderecos)
+            put("port", listeningPort)
+            put("lanRequests", lanRequests.get())
+            put("lastRemoteIp", lastRemoteIp ?: JSONObject.NULL)
+            put("lastRemoteAt", lastRemoteAt)
+        }
     }
 
     private fun apiPhotos(session: IHTTPSession): Response {
