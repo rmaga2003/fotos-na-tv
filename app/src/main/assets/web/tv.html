@@ -185,6 +185,20 @@
 
   .warn { color: #ff9e9e; }
 
+  /* Aviso do bloqueio de rede local do Android 16/17 */
+  .androidnote {
+    margin: 3vmin auto 0; max-width: 80vmin; text-align: left;
+    padding: 1.8vmin 2.4vmin; border-radius: 1.4vmin;
+    font-size: 1.85vmin; line-height: 1.5;
+    background: rgba(255, 202, 40, .10);
+    border: 1px solid rgba(255, 202, 40, .38);
+  }
+  .androidnote b { color: var(--accent); }
+  .androidnote code {
+    font-family: ui-monospace, Menlo, Consolas, monospace;
+    opacity: .85;
+  }
+
   /* ---------- diagnostico de rede ---------- */
   #diagBox {
     width: min(92vmin, 94vw); text-align: left;
@@ -245,6 +259,12 @@
     <h1>Mande a primeira foto!</h1>
     <p id="emptyHelp">Conecte-se ao Wi-Fi da casa e aponte a câmera para o QR code.</p>
     <div class="bigqrs" id="emptyQrs"></div>
+    <div class="androidnote">
+      <b>Android novo e a página não abre?</b> Se der <code>ERR_TOO_MANY_RETRIES</code>,
+      o celular está bloqueando a rede local. Vá em
+      <b>Ajustes → Apps → Chrome → Permissões → Dispositivos por perto → Permitir</b>
+      e tente de novo. Se não achar essa opção, abra o endereço no Firefox.
+    </div>
   </div>
 </div>
 
@@ -264,6 +284,12 @@
     <h1>Manda a sua foto 📲</h1>
     <p>Aponte a câmera do celular para o QR code</p>
     <div class="bigqrs" id="bigQrs"></div>
+    <div class="androidnote">
+      <b>Android novo e a página não abre?</b> Se der <code>ERR_TOO_MANY_RETRIES</code>,
+      o celular está bloqueando a rede local. Vá em
+      <b>Ajustes → Apps → Chrome → Permissões → Dispositivos por perto → Permitir</b>
+      e tente de novo. Se não achar essa opção, abra o endereço no Firefox.
+    </div>
   </div>
 </div>
 
@@ -735,7 +761,9 @@
         'O app está no ar e escutando — o que está barrando é a rede:<br><br>' +
         '1. O celular precisa estar no <b>mesmo Wi-Fi</b>. Cuidado com rede de convidados e com 2,4 GHz / 5 GHz publicadas como redes separadas.<br>' +
         '2. O IP do celular tem que começar igual a este: <b>' + escapeHtml(ipPrefix(addrs[0].ip)) + '</b><br>' +
-        '3. Se o começo bate e mesmo assim não abre, o roteador está com <b>isolamento de clientes</b> ligado. Desligue essa opção.</div>';
+        '3. Se o começo bate e mesmo assim não abre, o roteador está com <b>isolamento de clientes</b> ligado. Desligue essa opção.<br>' +
+        '4. Se o celular é Android novo e mostra <b>ERR_TOO_MANY_RETRIES</b>, é o bloqueio de rede local do Android: ' +
+        '<b>Ajustes → Apps → Chrome → Permissões → Dispositivos por perto → Permitir</b>.</div>';
     } else {
       veredito =
         '<div class="verdict good"><b>A rede está funcionando.</b> ' + d.lanRequests +

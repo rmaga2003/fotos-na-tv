@@ -228,6 +228,16 @@ app/src/main/
 **A TV mostra "Sem rede".** O Fire TV não está conectado. Conecte no Wi-Fi da
 casa — tem que ser a **mesma rede** dos celulares.
 
+**O celular Android mostra `ERR_TOO_MANY_RETRIES`.** Esse é o caso mais comum
+hoje e não é problema de rede. A partir do **Android 16/17** o sistema bloqueia
+apps que falam com aparelhos da rede local: o Chrome precisa da permissão
+`ACCESS_LOCAL_NETWORK` e, sem ela, devolve esse erro.
+
+> **Libere em:** Ajustes → Apps → Chrome → Permissões → **Dispositivos por perto**
+> (em alguns aparelhos, **Rede local**) → Permitir.
+>
+> Alternativa sem mexer em permissão: abrir o endereço no **Firefox**.
+
 **O celular não abre o endereço.** Alguns roteadores têm *isolamento de
 clientes* (AP isolation), que impede um aparelho de falar com outro na mesma
 rede. Desligue essa opção no roteador, ou use uma rede de convidados sem
