@@ -105,6 +105,34 @@
   </div>
 
   <div class="card">
+    <h2>Modo nuvem</h2>
+    <p class="muted">
+      Com o modo nuvem ligado, os convidados mandam foto pela internet — não
+      precisam entrar no Wi-Fi da casa, e some o bloqueio de rede local dos
+      Android novos. As fotos só passam pelo servidor: elas são baixadas para
+      este aparelho e apagadas de lá em seguida.
+    </p>
+
+    <div class="stats-row" style="margin-top:14px">
+      <div class="stat"><div class="k">Situação</div><div class="v" id="cloudState" style="font-size:16px">desligado</div></div>
+      <div class="stat"><div class="k">Código da festa</div><div class="v" id="cloudCode" style="font-size:16px">--</div></div>
+      <div class="stat"><div class="k">Fotos pela internet</div><div class="v" id="cloudPulled">0</div></div>
+    </div>
+
+    <label class="field">Endereço do relay
+      <input type="text" id="relayUrl" placeholder="https://fotos-na-tv.SEU-SUBDOMINIO.workers.dev"
+             autocapitalize="off" autocorrect="off" spellcheck="false"></label>
+
+    <div class="spacer"></div>
+    <div class="row">
+      <button class="btn" id="cloudOn">Ligar modo nuvem</button>
+      <button class="btn secondary" id="cloudOff">Desligar</button>
+    </div>
+    <div class="status" id="cloudStatus"></div>
+    <p class="muted" id="cloudLink" style="margin-top:10px"></p>
+  </div>
+
+  <div class="card">
     <h2>Contagem regressiva</h2>
     <p class="muted">Opcional. Na hora marcada a TV faz a contagem e solta fogos.</p>
     <label class="field">Momento
@@ -341,10 +369,66 @@
         // So preenche uma vez: senao o refresh periodico apaga o que o
         // usuario esta digitando.
         if (info.settings && !formLoaded) { fillForm(info.settings); formLoaded = true; }
+        renderCloud(info.cloud);
         updateZipLink();
       })
       .catch(function () {});
   }
+
+  // ---------- modo nuvem ----------
+  function renderCloud(c) {
+    c = c || {};
+    var ligado = !!c.enabled;
+    var estado = !ligado ? "desligado" : (c.online ? "no ar" : "sem conexão");
+    $("cloudState").textContent = estado;
+    $("cloudState").style.color = !ligado ? "" : (c.online ? "var(--ok)" : "var(--err)");
+    $("cloudCode").textContent = c.code || "--";
+    $("cloudPulled").textContent = c.pulled || 0;
+    if (c.relayUrl && !$("relayUrl").value) $("relayUrl").value = c.relayUrl;
+    $("cloudLink").innerHTML = c.guestUrl
+      ? "Os convidados caem em <b>" + escapeHtml(c.guestUrl) + "</b> — é esse QR que a TV mostra."
+      : "";
+    if (c.error) { $("cloudStatus").className = "status err"; $("cloudStatus").textContent = c.error; }
+  }
+
+  $("cloudOn").addEventListener("click", function () {
+    var url = $("relayUrl").value.trim();
+    if (!url) {
+      $("cloudStatus").className = "status err";
+      $("cloudStatus").textContent = "Informe o endereço do relay primeiro.";
+      return;
+    }
+    $("cloudStatus").className = "status";
+    $("cloudStatus").textContent = "Ligando…";
+    fetch("/api/cloud/enable", {
+      method: "POST",
+      headers: headers({ "Content-Type": "application/json" }),
+      body: JSON.stringify({ relayUrl: url })
+    })
+      .then(function (r) { return r.json().then(function (j) { return { ok: r.ok, j: j }; }); })
+      .then(function (res) {
+        if (!res.ok) throw new Error(res.j.error || "não deu certo");
+        $("cloudStatus").className = "status ok";
+        $("cloudStatus").textContent = "Modo nuvem no ar. Código da festa: " + res.j.code;
+        renderCloud(res.j.status);
+      })
+      .catch(function (e) {
+        $("cloudStatus").className = "status err";
+        $("cloudStatus").textContent = e.message;
+      });
+  });
+
+  $("cloudOff").addEventListener("click", function () {
+    fetch("/api/cloud/disable", { method: "POST", headers: headers() })
+      .then(function () {
+        $("cloudStatus").className = "status ok";
+        $("cloudStatus").textContent = "Modo nuvem desligado. A TV volta a mostrar o endereço local.";
+        return fetch("/api/cloud", { headers: headers(), cache: "no-store" });
+      })
+      .then(function (r) { return r.json(); })
+      .then(renderCloud)
+      .catch(function () {});
+  });
 
   function boot() {
     if (booted) return;

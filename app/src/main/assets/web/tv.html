@@ -562,48 +562,93 @@
     return '<img src="/api/qr?s=' + size + '&d=' + encodeURIComponent(data) + '" alt="">';
   }
 
-  function qrCards(size) {
-    if (!info.uploadUrl) {
-      return '<div class="bigqr"><div class="t warn">Sem rede</div>' +
-             '<div class="u">Conecte este aparelho ao Wi-Fi</div></div>';
+  /**
+   * Decide por onde os convidados mandam foto.
+   *
+   * Com o modo nuvem no ar, um QR so resolve para todo mundo - inclusive
+   * quem nem entrou no Wi-Fi da casa e quem tem Android novo bloqueando a
+   * rede local. Se a internet cair no meio da festa, voltamos sozinhos para
+   * o endereco local, que continua funcionando.
+   */
+  function canaisDeEnvio() {
+    var c = info.cloud || {};
+    if (c.enabled && c.guestUrl && c.online) {
+      return [{
+        data: c.guestUrl,
+        titulo: "Envie sua foto 📸",
+        sub: "Funciona em qualquer celular",
+        linha: c.guestUrl.replace(/^https?:\/\//, "")
+      }];
     }
-    var html = "";
+
+    var canais = [];
     if (info.hasWifi) {
-      html += '<div class="bigqr">' + qrImg(info.wifiPayload, 420) +
-              '<div class="t">1 · Wi-Fi da festa</div>' +
-              '<div class="u">' + escapeHtml(info.settings.wifiSsid || "") + '</div></div>';
+      canais.push({
+        data: info.wifiPayload,
+        titulo: "1 · Wi-Fi da festa",
+        sub: "Conecte pelo QR",
+        linha: info.settings.wifiSsid || ""
+      });
     }
-    html += '<div class="bigqr">' + qrImg(info.uploadUrl, 420) +
-            '<div class="t">' + (info.hasWifi ? "2 · " : "") + 'Enviar foto</div>' +
-            '<div class="u">' + escapeHtml(info.uploadUrl.replace("http://", "")) + '</div></div>';
-    return html;
+    if (info.uploadUrl) {
+      canais.push({
+        data: info.uploadUrl,
+        titulo: (info.hasWifi ? "2 · " : "") + "Envie sua foto 📸",
+        sub: "Aponte a câmera do celular",
+        linha: info.uploadUrl.replace("http://", "")
+      });
+    }
+    return canais;
+  }
+
+  function semRedeHtml(classe) {
+    return '<div class="' + classe + '"><div class="t warn">Sem rede</div>' +
+           '<div class="u">Conecte este aparelho ao Wi-Fi da casa</div></div>';
+  }
+
+  function qrCards(size) {
+    var canais = canaisDeEnvio();
+    if (!canais.length) return semRedeHtml("bigqr");
+
+    return canais.map(function (c) {
+      return '<div class="bigqr">' + qrImg(c.data, size) +
+             '<div class="t">' + escapeHtml(c.titulo) + '</div>' +
+             '<div class="u">' + escapeHtml(c.linha) + '</div></div>';
+    }).join("");
   }
 
   function renderQrs() {
+    var canais = canaisDeEnvio();
     var panel = $("qrPanel");
-    if (!info.uploadUrl) {
+
+    if (!canais.length) {
       panel.innerHTML = '<div class="qrcard"><div><div class="t warn">Sem rede</div>' +
         '<div class="s">Conecte este aparelho ao Wi-Fi da casa</div></div></div>';
     } else {
-      var html = "";
-      if (info.hasWifi) {
-        html += '<div class="qrcard">' + qrImg(info.wifiPayload, 260) +
-                '<div><div class="t">Wi-Fi da festa</div>' +
-                '<div class="s">Conecte pelo QR</div>' +
-                '<div class="u">' + escapeHtml(info.settings.wifiSsid || "") + '</div></div></div>';
-      }
-      html += '<div class="qrcard">' + qrImg(info.uploadUrl, 260) +
-              '<div><div class="t">Envie sua foto 📸</div>' +
-              '<div class="s">Aponte a câmera do celular</div>' +
-              '<div class="u">' + escapeHtml(info.uploadUrl.replace("http://", "")) + '</div></div></div>';
-      panel.innerHTML = html;
+      panel.innerHTML = canais.map(function (c) {
+        return '<div class="qrcard">' + qrImg(c.data, 260) +
+               '<div><div class="t">' + escapeHtml(c.titulo) + '</div>' +
+               '<div class="s">' + escapeHtml(c.sub) + '</div>' +
+               '<div class="u">' + escapeHtml(c.linha) + '</div></div></div>';
+      }).join("");
     }
+
     $("emptyQrs").innerHTML = qrCards(420);
     $("idleQrs").innerHTML = qrCards(420);
     $("bigQrs").innerHTML = qrCards(480);
-    $("emptyHelp").textContent = info.hasWifi
-      ? "Escaneie o primeiro QR para entrar no Wi-Fi e o segundo para enviar."
-      : "Conecte-se ao Wi-Fi da casa e aponte a câmera para o QR code.";
+
+    var naNuvem = (info.cloud || {}).enabled && (info.cloud || {}).online;
+    $("emptyHelp").textContent = naNuvem
+      ? "Aponte a câmera para o QR code. Não precisa entrar no Wi-Fi da casa."
+      : (info.hasWifi
+          ? "Escaneie o primeiro QR para entrar no Wi-Fi e o segundo para enviar."
+          : "Conecte-se ao Wi-Fi da casa e aponte a câmera para o QR code.");
+
+    // O aviso de permissão do Android só faz sentido no modo local
+    var avisos = document.querySelectorAll(".androidnote");
+    for (var i = 0; i < avisos.length; i++) {
+      avisos[i].style.display = naNuvem ? "none" : "";
+    }
   }
 
   function escapeHtml(s) {

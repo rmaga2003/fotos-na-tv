@@ -26,6 +26,28 @@ notebook ligado na TV por HDMI, nem de internet, nem de servidor na nuvem.
 
 ---
 
+## Dois caminhos para a foto chegar na TV
+
+O app aceita foto por dois canais ao mesmo tempo, e os dois caem no mesmo
+álbum:
+
+| | Rede local (padrão) | Modo nuvem (opcional) |
+|---|---|---|
+| O convidado precisa | estar no Wi-Fi da casa | só de internet no próprio celular |
+| Internet na festa | dispensa | obrigatória |
+| Android 16/17 | exige liberar a rede local | funciona direto |
+| As fotos | nunca saem da casa | passam pelo relay e são apagadas de lá |
+| Custo | zero | praticamente zero (veja `relay/`) |
+
+Ligando o modo nuvem no `/admin`, a TV passa a mostrar **um QR só**, que
+funciona para qualquer convidado — inclusive quem nem entrou no Wi-Fi.
+Se a internet cair no meio da festa, a TV volta sozinha a mostrar o
+endereço local.
+
+O relay é um Worker da Cloudflare de uma página só, e **não guarda acervo**:
+ele segura a foto até a TV buscar e apagar. Veja [`relay/`](relay/) para
+publicar o seu.
+
 ## Como funciona
 
 ```

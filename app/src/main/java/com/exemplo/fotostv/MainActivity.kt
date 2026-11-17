@@ -28,6 +28,7 @@ class MainActivity : AppCompatActivity() {
     private lateinit var store: PhotoStore
     private lateinit var appSettings: Settings
     private var server: PhotoServer? = null
+    private var cloud: CloudSync? = null
     private var port = 0
 
     @Volatile
@@ -41,6 +42,10 @@ class MainActivity : AppCompatActivity() {
 
         store = PhotoStore(this)
         appSettings = Settings(this)
+
+        // Segundo canal de entrada: fotos que os convidados mandam pela internet.
+        // Cai no mesmo album das que chegam pela rede local.
+        cloud = CloudSync(appSettings, store, cacheDir) { onPhotoAdded() }
 
         webView = WebView(this).apply {
             setBackgroundColor(Color.BLACK)
@@ -73,7 +78,10 @@ class MainActivity : AppCompatActivity() {
 
         when (val started = startServer()) {
             null -> showStartupError()
-            else -> webView.loadUrl("http://127.0.0.1:" + started + "/tv")
+            else -> {
+                cloud?.iniciar()
+                webView.loadUrl("http://127.0.0.1:" + started + "/tv")
+            }
         }
     }
 
@@ -88,6 +96,7 @@ class MainActivity : AppCompatActivity() {
             try {
                 instance.start(NanoHTTPD.SOCKET_READ_TIMEOUT, false)
                 instance.onPhotoAdded = { onPhotoAdded() }
+                instance.cloud = cloud
                 server = instance
                 port = candidate
                 Log.i(TAG, "servidor no ar em http://" + (NetUtils.localIpv4() ?: "?") + ":" + candidate)
@@ -215,6 +224,8 @@ class MainActivity : AppCompatActivity() {
     }
 
     override fun onDestroy() {
+        cloud?.parar()
+        cloud = null
         server?.stop()
         server = null
         webView.destroy()

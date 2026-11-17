@@ -1,0 +1,14 @@
+{
+  "name": "fotos-na-tv-relay",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Repassa fotos dos convidados para o aparelho ligado na TV. Nao guarda acervo.",
+  "scripts": {
+    "dev": "wrangler dev",
+    "deploy": "wrangler deploy",
+    "tail": "wrangler tail"
+  },
+  "devDependencies": {
+    "wrangler": "^3.90.0"
+  }
+}

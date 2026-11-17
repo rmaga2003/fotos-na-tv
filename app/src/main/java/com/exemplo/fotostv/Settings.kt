@@ -82,6 +82,29 @@ class Settings(context: Context) {
         get() = prefs.getInt(K_MAX_DIM, 1920).coerceIn(800, 4096)
         set(v) = prefs.edit().putInt(K_MAX_DIM, v.coerceIn(800, 4096)).apply()
 
+    // ---------- modo nuvem ----------
+    // Os convidados sobem a foto pela internet e este aparelho puxa do relay.
+    // Serve para quem nao esta no Wi-Fi da casa e para celulares Android novos,
+    // que bloqueiam acesso a rede local.
+
+    var cloudEnabled: Boolean
+        get() = prefs.getBoolean(K_CLOUD_ON, false)
+        set(v) = prefs.edit().putBoolean(K_CLOUD_ON, v).apply()
+
+    /** Endereco do Worker que faz o repasse. */
+    var relayUrl: String
+        get() = prefs.getString(K_RELAY_URL, DEFAULT_RELAY)!!
+        set(v) = prefs.edit().putString(K_RELAY_URL, v.trim().trimEnd('/')).apply()
+
+    var roomCode: String
+        get() = prefs.getString(K_ROOM_CODE, "")!!
+        set(v) = prefs.edit().putString(K_ROOM_CODE, v).apply()
+
+    /** Segredo da sala: so este aparelho pode puxar e apagar as fotos. */
+    var roomSecret: String
+        get() = prefs.getString(K_ROOM_SECRET, "")!!
+        set(v) = prefs.edit().putString(K_ROOM_SECRET, v).apply()
+
     /** PIN opcional para abrir /admin. Vazio = sem PIN. */
     var adminPin: String
         get() = prefs.getString(K_PIN, "")!!
@@ -105,6 +128,8 @@ class Settings(context: Context) {
         put("maxPhotos", maxPhotos)
         put("maxDimension", maxDimension)
         put("hasPin", adminPin.isNotEmpty())
+        put("cloudEnabled", cloudEnabled)
+        put("relayUrl", relayUrl)
     }
 
     /** Aplica apenas as chaves presentes no JSON recebido. */
@@ -126,6 +151,7 @@ class Settings(context: Context) {
         if (json.has("maxPhotos")) maxPhotos = json.getInt("maxPhotos")
         if (json.has("maxDimension")) maxDimension = json.getInt("maxDimension")
         if (json.has("adminPin")) adminPin = json.getString("adminPin").take(12)
+        if (json.has("relayUrl")) relayUrl = json.getString("relayUrl").take(200)
     }
 
     private companion object {
@@ -146,5 +172,12 @@ class Settings(context: Context) {
         const val K_MAX_PHOTOS = "maxPhotos"
         const val K_MAX_DIM = "maxDimension"
         const val K_PIN = "adminPin"
+        const val K_CLOUD_ON = "cloudEnabled"
+        const val K_RELAY_URL = "relayUrl"
+        const val K_ROOM_CODE = "roomCode"
+        const val K_ROOM_SECRET = "roomSecret"
+
+        /** Preenchido quando o relay for publicado; ate la, configuravel no /admin. */
+        const val DEFAULT_RELAY = ""
     }
 }

@@ -36,6 +36,9 @@ class PhotoServer(
     /** Chamado quando uma foto nova chega (a TV usa para reagir na hora). */
     var onPhotoAdded: ((PhotoStore.Photo) -> Unit)? = null
 
+    /** Preenchido pela Activity; expoe e controla o modo nuvem pelo /admin. */
+    var cloud: CloudSync? = null
+
     /*
      * Contadores de quem veio da rede (e nao do proprio WebView da TV).
      * Sao a resposta para a pergunta mais dificil de responder numa festa:
@@ -106,6 +109,9 @@ class PhotoServer(
             uri == "/api/photos/delete" && method == Method.POST -> apiDelete(session)
             uri == "/api/photos/clear" && method == Method.POST -> apiClear(session)
             uri == "/api/download-all" && method == Method.GET -> apiDownloadAll(session)
+            uri == "/api/cloud" && method == Method.GET -> apiCloudStatus()
+            uri == "/api/cloud/enable" && method == Method.POST -> apiCloudEnable(session)
+            uri == "/api/cloud/disable" && method == Method.POST -> apiCloudDisable(session)
             else -> notFound()
         }
     }
@@ -142,8 +148,51 @@ class PhotoServer(
             put("wifiPayload", QrUtils.wifiPayload(settings.wifiSsid, settings.wifiPassword, settings.wifiSecurity))
             put("hasWifi", settings.wifiSsid.isNotBlank())
             put("diagnostics", diagnostics())
+            put("cloud", cloud?.status() ?: JSONObject().put("enabled", false))
         }
         return noStore(json(Response.Status.OK, body))
+    }
+
+    private fun apiCloudStatus(): Response =
+        noStore(json(Response.Status.OK, cloud?.status() ?: JSONObject().put("enabled", false)))
+
+    private fun apiCloudEnable(session: IHTTPSession): Response {
+        if (!isAdmin(session)) return forbidden()
+
+        val parts = HashMap<String, String>()
+        session.parseBody(parts)
+        val corpo = parts["postData"]?.let { JSONObject(it) } ?: JSONObject()
+        val url = corpo.optString("relayUrl", settings.relayUrl).trim()
+
+        val sync = cloud
+            ?: return json(Response.Status.INTERNAL_ERROR, JSONObject().put("error", "nuvem indisponivel"))
+
+        val sala = sync.ligar(url)
+            ?: return noStore(
+                json(
+                    Response.Status.SERVICE_UNAVAILABLE,
+                    JSONObject().put("error", sync.ultimoErro ?: "Não consegui ligar o modo nuvem.")
+                )
+            )
+
+        return noStore(
+            json(
+                Response.Status.OK,
+                JSONObject()
+                    .put("ok", true)
+                    .put("code", sala.codigo)
+                    .put("guestUrl", sala.urlConvidado)
+                    .put("status", sync.status())
+            )
+        )
+    }
+
+    private fun apiCloudDisable(session: IHTTPSession): Response {
+        if (!isAdmin(session)) return forbidden()
+        val parts = HashMap<String, String>()
+        session.parseBody(parts)
+        cloud?.desligar()
+        return noStore(json(Response.Status.OK, JSONObject().put("ok", true)))
     }
 
     /** Tudo que a tela de diagnostico da TV precisa para apontar o culpado. */

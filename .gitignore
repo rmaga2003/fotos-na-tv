@@ -16,3 +16,9 @@ keystore.properties
 .idea/
 *.iml
 .DS_Store
+
+# Relay (Cloudflare Worker)
+relay/node_modules/
+relay/.wrangler/
+relay/dev.log
+relay/package-lock.json

@@ -1,0 +1,16 @@
+name = "fotos-na-tv"
+main = "src/worker.js"
+compatibility_date = "2024-11-01"
+
+# Bucket onde as fotos ficam de passagem ate a TV puxar.
+# Crie com:  npx wrangler r2 bucket create fotos-na-tv-relay
+[[r2_buckets]]
+binding = "FOTOS"
+bucket_name = "fotos-na-tv-relay"
+
+# Faxina das salas abandonadas, uma vez por hora.
+[triggers]
+crons = ["17 * * * *"]
+
+[observability]
+enabled = true
